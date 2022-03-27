@@ -51,10 +51,12 @@ class Tracker:
         and deletes objects if their counter is expired
          :return (OrderedDict) dictionary containing (track_id: Track)
          """
-        for track_id in self.disappeared.keys():
+        self.disappeared_copy = self.disappeared.copy()
+        for track_id in self.disappeared_copy.keys():
             self.disappeared[track_id] += 1
             if self.disappeared[track_id] > self.max_disappeared:
                 self.deregister(track_id)
+        del self.disappeared_copy
         return self.tracked
 
     def project(self):
@@ -118,8 +120,13 @@ class Tracker:
         """
         bboxes_crop = []
         for bbox in bboxes:
-            # Make sure the coordinates are type int so they can function as indices
-            x1, y1, x2, y2 = bbox.astype('int')
+            # Make sure the coordinates are type int, so they can function as indices
+            # x1, y1, x2, y2 = bbox.astype("int")
+            x1 = int(bbox[0])
+            y1 = int(bbox[1])
+            x2 = int(bbox[2])
+            y2 = int(bbox[3])
+            print(x1, x2, y1, y2)
 
             # Truncate coordinates of detections if value exceeds frame image dimensions
             if x2 >= frame.shape[1]:
@@ -313,7 +320,7 @@ class ReIDTracker(Tracker):
         D_iou_sorted = -np.sort(-D)
 
         # Check if there are difficult overlapping IoU between a track and several detections
-        for row_idx in xrange(D.shape[0]):
+        for row_idx in range(D.shape[0]):
             if (D_iou_sorted[row_idx, 0] - D_iou_sorted[row_idx, 1] < self.diff_threshold) and (D_iou_sorted[row_idx, 0] > self.matching_threshold):
                 # Consult with re-identification network
                 D_nn = self.metric_nn.distance_matrix(tracked_crops, detections_crops)
