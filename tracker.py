@@ -51,12 +51,10 @@ class Tracker:
         and deletes objects if their counter is expired
          :return (OrderedDict) dictionary containing (track_id: Track)
          """
-        self.disappeared_copy = self.disappeared.copy()
-        for track_id in self.disappeared_copy.keys():
+        for track_id in self.disappeared.keys():
             self.disappeared[track_id] += 1
             if self.disappeared[track_id] > self.max_disappeared:
                 self.deregister(track_id)
-        del self.disappeared_copy
         return self.tracked
 
     def project(self):
