@@ -44,7 +44,7 @@ for filename in glob.glob('images/*.jpg'):
 known_face_names = " ".join(known_face_names).replace(".jpg", " ").split()
 
 
-class Kurwa:
+class ScreenFeed:
     def start(self):
         # start the thread to read frames from the video stream
         t = Thread(target=self.hope, args=())
@@ -187,14 +187,14 @@ class SORT:
         elif tracker == 'ORB': self.tracker = ORBTracker()
         elif tracker == 'ReID': self.tracker = ReIDTracker()
 
-        kurwa = Kurwa()
+        screen = ScreenFeed()
 
         self.benchmark = benchmark
-        self.src = kurwa.start()
-        # if src is not None:
+        # self.src = screen.start()
+        if src is not None:
             # stara wersja jakby multithreading cos zepsuł, co sie nieuchronnie stanie
             # self.src = cv2.VideoCapture(src)
-            # self.src = WebcamVideoStream(src=src).start()
+            self.src = WebcamVideoStream(src=src).start()
         self.detector = None
 
         if self.benchmark:
@@ -365,10 +365,6 @@ class SORT:
                         present.append(ID)
                     real_present_popup = [associate.check_frq(present)]
                 cv2.imshow("Video Feed", frame)
-                if event == "podgląd":
-                    pass
-                if event == "speed":
-                    pass
 
             except TypeError:
                 pass
@@ -396,8 +392,8 @@ class SORT:
 def main():
     """ Starts the tracker on source video. Can start multiple instances of SORT in parallel """
     # path_to_video = "http://192.168.1.39:4747/video"
-    path_to_video = 1
-    SORT()
+    path_to_video = 0
+    SORT(path_to_video)
 
 if __name__ == '__main__':
     main()
