@@ -1,30 +1,7 @@
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 import cv2
-import PIL.Image
-
-
-def rgba2rgb( rgba, background=(255,255,255) ):
-    row, col, ch = rgba.shape
-
-    if ch == 3:
-        return rgba
-
-    assert ch == 4, 'RGBA image has 4 channels.'
-
-    rgb = np.zeros( (row, col, 3), dtype='float32' )
-    r, g, b, a = rgba[:,:,0], rgba[:,:,1], rgba[:,:,2], rgba[:,:,3]
-
-    a = np.asarray( a, dtype='float32' ) / 255.0
-
-    R, G, B = background
-
-    rgb[:,:,0] = r * a + (1.0 - a) * R
-    rgb[:,:,1] = g * a + (1.0 - a) * G
-    rgb[:,:,2] = b * a + (1.0 - a) * B
-
-    return np.asarray( rgb, dtype='uint8' )
-
 
 
 class DetectorAPI:
@@ -55,17 +32,14 @@ class DetectorAPI:
         self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
 
     def processFrame(self, image):
-        # image_np = image.reshape((2, 2, 4, -1))
         # Expand dimensions since the trained_model expects images to have shape: [1, None, None, 3]
-        images = np.array(image)
-        x = rgba2rgb(images)
-        image_np_expanded = np.expand_dims(x, axis=0)
+        image_np_expanded = np.expand_dims(image, axis=0)
         # Actual detection.
         (boxes, scores, classes, num) = self.sess.run(
             [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
             feed_dict={self.image_tensor: image_np_expanded})
 
-        im_height, im_width,_ = images.shape
+        im_height, im_width,_ = image.shape
         boxes_list = [None for i in range(boxes.shape[1])]
         for i in range(boxes.shape[1]):
             boxes_list[i] = (int(boxes[0,i,0] * im_height),

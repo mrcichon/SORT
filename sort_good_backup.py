@@ -1,34 +1,26 @@
+# File "/home/mrc/Desktop/SORT-danny_opencv/tracker.py", line 13: ważny argument, max frames na zniknięcie.
+# Powinno być chyba nastawione albo na 0 klatek, albo na ~10? Jakoś nisko chyba w każdym razie
+
 from __future__ import print_function
 import os.path
 from tracker import KalmanTracker, ORBTracker, ReIDTracker
 from imutils.video import WebcamVideoStream
 import numpy as np
-import os
-import sys
-import glob
-import datetime
-import  shutil
+import cv2
+from tracker_utils import bbox_to_centroid
 import random
 import colorsys
-import cv2
-import mss
-import face_recognition
-import PySimpleGUI as sg
-from collections import OrderedDict
-from threading import Thread
-from tracker_utils import bbox_to_centroid
 from human_detection import DetectorAPI
-from selenium import webdriver
+import face_recognition
+import os
+import glob
+from collections import OrderedDict
+import threading
 
-sct =mss.mss()
-monitor = {"top": 0, "left": 0, "width": 1366, "height": 768}
 
 #  intializing shite for face_recognition
 known_face_names = []
 known_face_encodings = []
-face_locations = []
-face_encodings = []
-face_names = []
 
 # reading jpg names from folder & adding them  to list
 file = [os.path.basename(x) for x in glob.glob(r'images//' + '*.jpg')]
@@ -43,69 +35,19 @@ for filename in glob.glob('images/*.jpg'):
 #  getting rid of .jpg from list
 known_face_names = " ".join(known_face_names).replace(".jpg", " ").split()
 
-
-class Kurwa:
-    def start(self):
-        # start the thread to read frames from the video stream
-        t = Thread(target=self.hope, args=())
-        t.daemon = True
-        t.start()
-        return self
-
-    def hope(self):
-        while True:
-            self.x = np.array(sct.grab(monitor))
-
-    def read(self):
-        return self.x
-
-
-class Presence:
-    @staticmethod
-    def select_area(first_frame):
-        area = cv2.selectROI("zaznacz drzwi", first_frame)
-        save_crds = open("koordynaty" , "w")
-        save_crds.write(str(area[0]) + "\n" + str(area[1]) + "\n" + str(area[2]) + "\n" + str(area[3]))
-        save_crds.close()
-        return int(area[0]), int(area[1]), int(area[2]), int(area[3])
-
-    @staticmethod
-    def close():
-        cv2.destroyWindow("zaznacz drzwi")
-
-class Distance:
-    def __init__(self):
-        self.known_distance = 100.0
-        self.known_width = 14.0
-
-    def focal_distance(self):
-        self.img = cv2.imread("mensura.jpg")
-        # self.resize = cv2.resize(self.img, (940, 560))
-        self.ref = cv2.selectROI("distance", self.img)
-        self.ref_width = int(self.ref[2])
-        self.focalLength = (self.ref_width * self.known_distance) / self.known_width
-        return self.focalLength
-
-    def skip(self, focalLength):
-        self.focalLength = focalLength
-        return self.focalLength
-
-    def distance_to_camera(self,  bbox):
-        distance = (self.known_width * self.focalLength) / (int(bbox[2]) - int(bbox[0]))
-        return distance
-
-    @staticmethod
-    def close():
-        cv2.destroyWindow("distance")
+# nie no bez jaj chyba widać co się dzieje
+face_locations = []
+face_encodings = []
+face_names = []
 
 # tying
-class Associate:
+class associate:
+
     def __init__(self):
         plox = OrderedDict()
         cokolwiek = []
         listaID = set()
         self.plox = plox
-        self.present_list = []
         self.ploxiterate = self.plox.copy()
         self.cokolwiek = cokolwiek
         self.listaID = listaID
@@ -124,8 +66,7 @@ class Associate:
         for name in self.face_names:
             if name is not None:
                 if name not in self.cokolwiek:
-                    if name != "Unknown":
-                        self.cokolwiek.append(name)
+                    self.cokolwiek.append(name)
         self.sendhelp = list(zip(self.listaID, self.cokolwiek))
         return self.sendhelp, self.listaID, self.cokolwiek
 
@@ -139,12 +80,9 @@ class Associate:
         return self.plox
 
     def delnone(self):
-        try:
-            for key, value in self.ploxiterate.items():
-                if value is None:
-                    del self.plox[key]
-        except KeyError:
-            pass
+        for key, value in self.ploxiterate.items():
+            if value is None:
+                del self.plox[key]
         return self.plox
 
     def clean(self):
@@ -163,12 +101,6 @@ class Associate:
     def check(self):
         print(self.plox)
 
-    def check_frq(self, present_id):
-        for key, value in  self.plox.items():
-            for ID in present_id:
-                if ID in value and self.plox[key][1] not in self.present_list:
-                    self.present_list.append(self.plox[key][1])
-        return self.present_list
 
 # main thing
 class SORT:
@@ -187,12 +119,10 @@ class SORT:
         elif tracker == 'ORB': self.tracker = ORBTracker()
         elif tracker == 'ReID': self.tracker = ReIDTracker()
 
-        kurwa = Kurwa()
-
         self.benchmark = benchmark
-        # self.src = kurwa.start()
         if src is not None:
-            # stara wersja jakby multithreading cos zepsuł, co sie nieuchronnie stanie
+            # stara wersja jakby mulithreading cos zepsul
+            # co sie nieuchronnie stanie
             # self.src = cv2.VideoCapture(src)
             self.src = WebcamVideoStream(src=src).start()
         self.detector = None
@@ -206,9 +136,12 @@ class SORT:
             """
             self.seq_idx = None
             self.load_next_seq()
+
         else:
             if detector == 'faster-rcnn':
                 model_path = './faster_rcnn_inception_v2/frozen_inference_graph.pb'
+
+                # komentarz coby mi łatwiej znaleźć było, bo kinda ważna rzecz
                 self.score_threshold = 0.9  # threshold for box score from neural network
 
             self.detector = DetectorAPI(path_to_ckpt=model_path)
@@ -252,47 +185,27 @@ class SORT:
             return frame, new_detections[:, :4]
 
         else:
+            #  nie mam pojęcia, co robi to _, i się tego legitnie boje
+            # _, frame = self.src.read()
+
+            # ############################################################### #
+            # Wyrzuca FATAL: exception not rethrown                           #
+            # po zakończeniu pracy. Nie mam zielonego pojęcia, co to robi,    #
+            # ale wydaje się działać jak powinno — możliwe, że tylko wizualne #
+            # możliwe, że nie, diabli i Absolut raczy wiedzieć                #
+            # ############################################################### #
             frame = self.src.read()
+
+            # po ciężki chuj na 1280x720
+            # frame = cv2.resize(frame, (1280, 720))
             boxes, scores, classes, num = self.detector.processFrame(frame)
             # supress boxes with scores lower than threshold
+            # non maxima suppression good stuff
             boxes_nms = []
             for i in range(len(boxes)):
                 if classes[i] == 1 and scores[i] > self.score_threshold:    # Class 1 represents person
                     boxes_nms.append(boxes[i])
             return frame, boxes_nms
-
-
-    def face_rec(self, frame, startX, startY,endX, endY):
-        framef = cv2.rectangle(frame, (int(startX), int(startY)), (int(endX), int(endY)), 2)
-        rgb_frame = framef[:, :, ::-1]  # na 95% to jest zbędne, bo to już jest w BGR, ale chuj wi, wiec zostawiam
-        face_locations = face_recognition.face_locations(rgb_frame)
-        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
-        self.face_names = []
-
-        for face_encoding in face_encodings:
-            # See if the face is a match for the known face(s)
-            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-            name = "Unknown"
-            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-            best_match_index = np.argmin(face_distances)
-            if matches[best_match_index]:
-                name = known_face_names[best_match_index]
-            self.face_names.append(name)
-            for (top, right, bottom, left), name in zip(face_locations, self.face_names):
-                # # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-                # top *= 1
-                # right *= 1
-                # bottom *= 1
-                # left *= 1
-
-                # Draw a box around the face
-                cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-
-                # Draw a label with a name below the face
-                cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
-                font = cv2.FONT_HERSHEY_DUPLEX
-                cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-            return self.face_names
 
     def start_tracking(self):
         """
@@ -300,39 +213,13 @@ class SORT:
         Receives list of associated detections for each frame from its tracker (Kalman or ORB),
         Shows the frame with color specific bounding boxes surrounding each unique track.
         """
-        associate = Associate()
-        distance = Distance()
-        frame, detections = self.next_frame()
-
-        layout = [[sg.Button("skip focal length", key="-SKIP_FOCAL-"), sg.Button("choose doors", key="-DOORS-")],
-                  [sg.Button("retake focus length", key="-GET_FOCAL-"), sg.Button("skip doors", key="-SKIP_DOORS-")],
-                  [sg.Text("distance"), sg.Input()], # value[0]
-                  [sg.Text("focal length") ,sg.Input()], # value[1]
-                  [sg.Combo(['podgląd', 'speed'])], # value[2]
-                  [sg.Submit(key="-SEND-"), sg.Cancel()]]
-        window = sg.Window('menu2', layout)
-        while True:
-            event, values = window.read()
-            if event == "-SKIP_FOCAL-":
-                distance.skip(int(values[1]))
-            if event == "-GET_FOCAL-":
-                print(distance.focal_distance())
-                distance.close()
-            if event == "-DOORS-":
-                coordinates = Presence.select_area(frame)
-                Presence.close()
-            if event == "-SKIP_DOORS-":
-                save_crds = open("koordynaty", "r")
-                coordinates = save_crds.readlines()
-            if event == sg.WIN_CLOSED or event == 'Exit' or event =="-SEND-":
-                break
-        window.close()
-
+        a = associate()
         while True:
             # Fetch the next frame from video source, if no frames are fetched, stop loop
             frame, detections = self.next_frame()
             if frame is None:
                 break
+
             # Send new detections to set tracker
             if isinstance(self.tracker, KalmanTracker):
                 tracks = self.tracker.update(detections)
@@ -341,7 +228,7 @@ class SORT:
             else:
                 raise Exception('[ERROR] Tracker type not specified for SORT')
 
-            associate.counter(tracks)
+            a.counter(tracks)
 
             # Look through each track and display it on frame (each track is a tuple (ID, [x1,y1,x2,y2])
             try:
@@ -350,20 +237,49 @@ class SORT:
                     # Generate pseudo-random colors for bounding boxes for each unique ID
                     random.seed(ID)
 
-                    bbox_distance = distance.distance_to_camera(bbox)
-
                     # Make sure the colors are strong and bright and draw the bounding box around the track
                     h, s, l = random.random(), 0.5 + random.random() / 2.0, 0.4 + random.random() / 5.0
                     color = [int(256 * i) for i in colorsys.hls_to_rgb(h, l, s)]
                     startX, startY, endX, endY = bbox
                     cv2.rectangle(frame, (int(startX), int(startY)), (int(endX), int(endY)), color, 2)
 
-                    self.face_rec(frame,startX, startY, endX, endY)
-                    associate.associating(self.face_names, ID)
-                    associate.make()
-                    associate.clean()
-                    associate.delnone()
-                    associate.check()
+                    framef = cv2.rectangle(frame, (int(startX), int(startY)), (int(endX), int(endY)), 2)
+                    rgb_frame = framef[:, :, ::-1]  # na 95% to jest zbędne, bo to już jest w BGR, ale chuj wi, wiec zostawiam
+                    face_locations = face_recognition.face_locations(rgb_frame)
+                    face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+                    face_names = []
+
+                    for face_encoding in face_encodings:
+                        # See if the face is a match for the known face(s)
+                        matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+                        name = "Unknown"
+                        face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+                        best_match_index = np.argmin(face_distances)
+                        if matches[best_match_index]:
+                            name = known_face_names[best_match_index]
+                        face_names.append(name)
+
+                    a.associating(face_names, ID)
+                    a.make()
+                    # a.delnone()
+                    a.clean()
+                    a.check()
+
+
+                        # for location in face_locations:
+                        #     x = location[0]
+                        #     y = location[1]
+                        #     w = location[2]
+                        #     h = location[3]
+                        #     cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), thickness=4)
+                        #     if int(startX) < x and int(startY) < y:
+                        #         if x + w < int(startX) + int(endX) \
+                        #                 and y + h < int(startY) + int(endY):
+                        #             print("nie no ciekawie ale co w związku z tym")
+                        #         else:
+                        #             print("ratunkuuuuuuuuuu")
+
+
 
                     # Calculate centroid from bbox, display it and its unique ID
                     centroid = bbox_to_centroid(bbox)
@@ -372,38 +288,16 @@ class SORT:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
                     cv2.circle(frame, (centroid[0], centroid[1]), 4, color, -1)
 
-                    present =[]
-                    if startX >= int(coordinates[0]) and startY >= int(coordinates[1]) and \
-                            endX <= int(coordinates[0]) + int(coordinates[2]) and \
-                            endY <= int(coordinates[1]) + int(coordinates[3]) and bbox_distance > int(values[0]):
-                        present.append(ID)
-                    real_present_popup = [associate.check_frq(present)]
-                # cv2.resize(frame, (700, 700))
+                # Show tracked frame
                 cv2.imshow("Video Feed", frame)
-
 
             except TypeError:
                 pass
             # iqf the `q` key was pressed, break from the loop
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 print('SORT operation terminated by user... closing tracker')
-                cv2.destroyAllWindows()
-                sg.popup(real_present_popup, no_titlebar=True, grab_anywhere=True, keep_on_top= True)
                 return
 
-                # driver = webdriver.Firefox(executable_path=r'/usr/bin/geckodriver')
-                # driver.get("file:/home/mrc/Desktop/vulcan/Vulcan3/uonetplus.vulcan.net.pl/lublin/Start.mvc/Index.html")
-                # driver.get("file:/home/mrc/Desktop/vulcan/Vulcan3/uonetplus.vulcan.net.pl/lublin/Start.mvc/db.html")
-                #
-                # for namez in real_present_popup:
-                #     for i in range(len(known_face_names)):
-                #         name = known_face_names[i]
-                #         webcheck = driver.find_element_by_xpath(f"//*[text()='{name}']").text
-                #         if webcheck in namez:
-                #             driver.find_element_by_name(f"obecność{name}").click()
-                #         else:
-                #             driver.find_element_by_name(f"nieobecność{name}").click()
-                # return
 
         if self.benchmark:
             self.load_next_seq()
@@ -420,11 +314,29 @@ class SORT:
             bbox.astype("int")
             return [bbox[1], bbox[0], bbox[3], bbox[2]]
 
+
+    @staticmethod
+    def show_source(seq, frame, phase='train'):
+        """ Method for displaying the origin video being tracked """
+        return cv2.imread('mot_benchmark/%s/%s/img1/%06d.jpg' % (phase, seq, frame))
+
+    @staticmethod
+    def check_data_path():
+        """ Validates correct implementation of symbolic link to data for SORT """
+        if not os.path.exists('mot_benchmark'):
+            print('''
+            ERROR: mot_benchmark link not found!\n
+            Create a symbolic link to the MOT benchmark\n
+            (https://motchallenge.net/data/2D_MOT_2015/#download)
+            ''')
+            exit()
+
+
 def main():
     """ Starts the tracker on source video. Can start multiple instances of SORT in parallel """
-    # path_to_video = "http://192.168.1.40:8080/video"
     path_to_video = 0
     SORT(path_to_video)
+
 
 if __name__ == '__main__':
     main()

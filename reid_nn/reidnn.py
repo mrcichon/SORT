@@ -4,15 +4,15 @@ import numpy as np
 import cv2
 
 # Set tensorflow app flags
-FLAGS = tf.flags.FLAGS
-tf.flags.DEFINE_integer('batch_size', '32', 'batch size for training')
-tf.flags.DEFINE_integer('max_steps', '210000', 'max steps for training')
-tf.flags.DEFINE_string('logs_dir', '/home/mystique/PycharmProjects/SORT/sort/reid_nn/logs/', 'path to logs directory')
-tf.flags.DEFINE_string('data_dir', 'data/', 'path to dataset')
-tf.flags.DEFINE_float('learning_rate', '0.01', '')
-tf.flags.DEFINE_string('mode', 'train', 'Mode train, val, test')
-tf.flags.DEFINE_string('image1', '', 'First image path to compare')
-tf.flags.DEFINE_string('image2', '', 'Second image path to compare')
+FLAGS = tf.compat.v1.flags.Flag
+tf.compat.v1.flags.DEFINE_integer('batch_size', '32', 'batch size for training')
+tf.compat.v1.flags.DEFINE_integer('max_steps', '210000', 'max steps for training')
+tf.compat.v1.flags.DEFINE_string('logs_dir', '/home/mystique/PycharmProjects/SORT/sort/reid_nn/logs/', 'path to logs directory')
+tf.compat.v1.flags.DEFINE_string('data_dir', 'data/', 'path to dataset')
+tf.compat.v1.flags.DEFINE_float('learning_rate', '0.01', '')
+tf.compat.v1.flags.DEFINE_string('mode', 'train', 'Mode train, val, test')
+tf.compat.v1.flags.DEFINE_string('image1', '', 'First image path to compare')
+tf.compat.v1.flags.DEFINE_string('image2', '', 'Second image path to compare')
 
 # Input images fixed size
 IMAGE_WIDTH = 60

@@ -1,27 +1,17 @@
 from __future__ import print_function
-import os.path
 from tracker import KalmanTracker, ORBTracker, ReIDTracker
 from imutils.video import WebcamVideoStream
 import numpy as np
 import os
-import sys
 import glob
-import datetime
-import  shutil
 import random
 import colorsys
 import cv2
-import mss
 import face_recognition
 import PySimpleGUI as sg
 from collections import OrderedDict
-from threading import Thread
 from tracker_utils import bbox_to_centroid
 from human_detection import DetectorAPI
-from selenium import webdriver
-
-sct =mss.mss()
-monitor = {"top": 0, "left": 0, "width": 1366, "height": 768}
 
 #  intializing shite for face_recognition
 known_face_names = []
@@ -44,22 +34,6 @@ for filename in glob.glob('images/*.jpg'):
 known_face_names = " ".join(known_face_names).replace(".jpg", " ").split()
 
 
-class Kurwa:
-    def start(self):
-        # start the thread to read frames from the video stream
-        t = Thread(target=self.hope, args=())
-        t.daemon = True
-        t.start()
-        return self
-
-    def hope(self):
-        while True:
-            self.x = np.array(sct.grab(monitor))
-
-    def read(self):
-        return self.x
-
-
 class Presence:
     @staticmethod
     def select_area(first_frame):
@@ -73,6 +47,7 @@ class Presence:
     def close():
         cv2.destroyWindow("zaznacz drzwi")
 
+
 class Distance:
     def __init__(self):
         self.known_distance = 100.0
@@ -80,7 +55,6 @@ class Distance:
 
     def focal_distance(self):
         self.img = cv2.imread("mensura.jpg")
-        # self.resize = cv2.resize(self.img, (940, 560))
         self.ref = cv2.selectROI("distance", self.img)
         self.ref_width = int(self.ref[2])
         self.focalLength = (self.ref_width * self.known_distance) / self.known_width
@@ -97,6 +71,7 @@ class Distance:
     @staticmethod
     def close():
         cv2.destroyWindow("distance")
+
 
 # tying
 class Associate:
@@ -164,11 +139,12 @@ class Associate:
         print(self.plox)
 
     def check_frq(self, present_id):
-        for key, value in  self.plox.items():
+        for key, value in self.plox.items():
             for ID in present_id:
                 if ID in value and self.plox[key][1] not in self.present_list:
                     self.present_list.append(self.plox[key][1])
         return self.present_list
+
 
 # main thing
 class SORT:
@@ -187,13 +163,9 @@ class SORT:
         elif tracker == 'ORB': self.tracker = ORBTracker()
         elif tracker == 'ReID': self.tracker = ReIDTracker()
 
-        kurwa = Kurwa()
-
         self.benchmark = benchmark
-        # self.src = kurwa.start()
+
         if src is not None:
-            # stara wersja jakby multithreading cos zepsuł, co sie nieuchronnie stanie
-            # self.src = cv2.VideoCapture(src)
             self.src = WebcamVideoStream(src=src).start()
         self.detector = None
 
@@ -378,7 +350,6 @@ class SORT:
                             endY <= int(coordinates[1]) + int(coordinates[3]) and bbox_distance > int(values[0]):
                         present.append(ID)
                     real_present_popup = [associate.check_frq(present)]
-                # cv2.resize(frame, (700, 700))
                 cv2.imshow("Video Feed", frame)
 
 
@@ -390,20 +361,6 @@ class SORT:
                 cv2.destroyAllWindows()
                 sg.popup(real_present_popup, no_titlebar=True, grab_anywhere=True, keep_on_top= True)
                 return
-
-                # driver = webdriver.Firefox(executable_path=r'/usr/bin/geckodriver')
-                # driver.get("file:/home/mrc/Desktop/vulcan/Vulcan3/uonetplus.vulcan.net.pl/lublin/Start.mvc/Index.html")
-                # driver.get("file:/home/mrc/Desktop/vulcan/Vulcan3/uonetplus.vulcan.net.pl/lublin/Start.mvc/db.html")
-                #
-                # for namez in real_present_popup:
-                #     for i in range(len(known_face_names)):
-                #         name = known_face_names[i]
-                #         webcheck = driver.find_element_by_xpath(f"//*[text()='{name}']").text
-                #         if webcheck in namez:
-                #             driver.find_element_by_name(f"obecność{name}").click()
-                #         else:
-                #             driver.find_element_by_name(f"nieobecność{name}").click()
-                # return
 
         if self.benchmark:
             self.load_next_seq()
